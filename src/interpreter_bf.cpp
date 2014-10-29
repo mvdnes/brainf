@@ -11,6 +11,13 @@ typedef char bf_t;
 
 bf_t bfmem[30000];
 
+char getchar_fixed()
+{
+    char c = getchar();
+    if (c == EOF) return 0;
+    return c;
+}
+
 void execute(string program, bf_t* ptr) {
     int loc = 0;
     vector<int> stack;
@@ -37,7 +44,7 @@ void execute(string program, bf_t* ptr) {
             cout.put((char)*ptr);
             break;
         case ',':
-            *ptr = cin.get();
+            *ptr = getchar_fixed();
             break;
         case '[':
             stack.push_back(loc);

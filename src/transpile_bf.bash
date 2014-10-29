@@ -2,12 +2,20 @@
 
 HEAD='
 #include <iostream>
+#include <cstdio>
 
 using namespace std;
 
 typedef char bf_t;
 
 bf_t mem[30000];
+
+char getchar_fixed()
+{
+    char c = getchar();
+    if (c == EOF) return 0;
+    return c;
+}
 
 int main() {
     bf_t *ptr = &mem[0];
@@ -32,7 +40,7 @@ do
         "+") echo " ++(*ptr);" >> $TMP;;
         "-") echo " --(*ptr);" >> $TMP;;
         ".") echo " cout.put((char)*ptr);" >> $TMP;;
-        ",") echo " *ptr = cin.get();" >> $TMP;;
+        ",") echo " *ptr = getchar_fixed();" >> $TMP;;
         "[") echo " while(*ptr) {" >> $TMP;;
         "]") echo " }" >> $TMP;;
     esac

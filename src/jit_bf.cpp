@@ -15,6 +15,13 @@ typedef vector<unsigned char> vcode;
 
 bf_t bfmem[30000];
 
+char getchar_fixed()
+{
+    char c = getchar();
+    if (c == EOF) return 0;
+    return c;
+}
+
 void compile_load(vcode &code, bool &inreg)
 {
     if (inreg) return;
@@ -55,7 +62,7 @@ void compile_read(vcode &code, bool &inreg)
     code.push_back(0x48); // 64 bit prefix
     code.push_back(0xB8); // mov .ax imm
 
-    uint64_t fptr = (uint64_t)getchar;
+    uint64_t fptr = (uint64_t)getchar_fixed;
     for (unsigned i = 0; i < 8; ++i)
     {
         code.push_back((unsigned char)(fptr >> (i * 8)));
