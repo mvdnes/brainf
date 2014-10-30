@@ -19,11 +19,19 @@ struct bfopcode
 typedef unsigned long long uint64_t;
 typedef unsigned char bf_t;
 typedef vector<unsigned char> vcode;
+string getchar_in;
+int getchar_pos = -1;
 
 bf_t bfmem[30000];
 
 char getchar_fixed()
 {
+    if (getchar_pos != -1) {
+        if (getchar_pos >= (int)getchar_in.size()) return 0;
+        char c = getchar_in[getchar_pos];
+        ++getchar_pos;
+        return c;
+    }
     char c = getchar();
     if (c == EOF) return 0;
     return c;
@@ -238,16 +246,51 @@ vector<bfopcode> simplify_code(const string &code)
     return result;
 }
 
+string do_extended(const string &program)
+{
+    bool seen_exclmark = false;
+    string output = "";
+    string input;
+    for (unsigned i = 0; i < program.size(); ++i) {
+        if (seen_exclmark) {
+            input += program[i];
+        }
+        else if (program[i] == '!') {
+            seen_exclmark = true;
+            getchar_pos = 0;
+        }
+        else {
+            output += program[i];
+        }
+    }
+    getchar_in = input;
+    return output;
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
-        cerr << "Usage: " << argv[0] << " <filename>" << endl;
+        cerr << "Usage: " << argv[0] << " [-e] <filename>" << endl;
+        cerr << endl;
+        cerr << "       [-e]: extended brainf, with ! support" << endl;
         return 1;
+    }
+
+    string filename = "";
+    bool extended = false;
+    for (int i = 1; i < argc; ++i)
+    {
+        if (strcmp(argv[i], "-e") == 0) {
+            extended = true;
+        }
+        else {
+            filename = argv[i];
+        }
     }
 
     vector<unsigned char> code;
 
-    ifstream bf(argv[1]);
-    if (!bf.is_open()) {
+    ifstream bf(filename.c_str());
+    if (!bf.is_open() || filename == "") {
         cerr << "could not open file." << endl;
         return 2;
     }
@@ -256,6 +299,9 @@ int main(int argc, char *argv[]) {
             std::istreambuf_iterator<char>());
     bf.close();
 
+    if (extended) {
+        program = do_extended(program);
+    }
     vector<bfopcode> preprocessed_program = simplify_code(program);
 
     int status = compile(preprocessed_program, code);
