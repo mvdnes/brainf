@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 
-namespace BfToIr
+namespace BrainfCompiler
 {
     class Generator
     {
@@ -19,7 +19,7 @@ namespace BfToIr
             this.destination = destination;
         }
 
-        public static bool generate(String destination, ASTNode tree)
+        public static bool run(String destination, ASTNode tree)
         {
             Generator generator = new Generator(destination);
             generator.genPre();
@@ -139,6 +139,15 @@ namespace BfToIr
                         ilg.Emit(OpCodes.Bne_Un, loopstart);
 
                         node = node.childRight;
+                        break;
+
+                    case ASTNodeType.SetZero:
+                        ilg.Emit(OpCodes.Ldsfld, mem);
+                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldc_I4_0);
+                        ilg.Emit(OpCodes.Stelem_I4);
+
+                        node = node.childLeft;
                         break;
                 }
             }

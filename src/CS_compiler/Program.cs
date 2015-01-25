@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace BfToIr
+namespace BrainfCompiler
 {
     class Program
     {
@@ -26,8 +26,9 @@ namespace BfToIr
 
             var lexer = new Lexer(fin);
             var rootNode = Parser.run(lexer);
+            rootNode = Optimizer.run(rootNode);
 
-            Generator.generate("genned.exe", rootNode);
+            Generator.run("genned.exe", rootNode);
         }
     }
 }

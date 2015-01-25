@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BfToIr
+namespace BrainfCompiler
 {
     enum ASTNodeType
     {
@@ -10,13 +10,14 @@ namespace BfToIr
         Read,
         Write,
         Leaf,
+        SetZero,
     };
 
     class ASTNode
     {
         public ASTNodeType nodeType { get; private set; }
-        public ASTNode childLeft { get; private set; }
-        public ASTNode childRight { get; private set; }
+        public ASTNode childLeft { get; set; }
+        public ASTNode childRight { get; set; }
         public int amount { get; private set; }
 
         public static ASTNode getLeaf()
@@ -31,15 +32,22 @@ namespace BfToIr
 
         public static ASTNode getUnary(ASTNodeType type, ASTNode child, int amount)
         {
-            if (type == ASTNodeType.Leaf || type == ASTNodeType.Loop)
+            switch (type)
             {
-                throw new ArgumentException("Invalid node type");
+                case ASTNodeType.Plus:
+                case ASTNodeType.Read:
+                case ASTNodeType.Right:
+                case ASTNodeType.SetZero:
+                case ASTNodeType.Write:
+                    break;
+                default:
+                    throw new ArgumentException("Invalid node type");
             }
 
             return new ASTNode(type, child, null, amount);
         }
 
-        public ASTNode(ASTNodeType type, ASTNode childLeft, ASTNode childRight, int amount)
+        private ASTNode(ASTNodeType type, ASTNode childLeft, ASTNode childRight, int amount)
         {
             this.nodeType = type;
             this.childLeft = childLeft;

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace BfToIr
+namespace BrainfCompiler
 {
     class Parser
     {

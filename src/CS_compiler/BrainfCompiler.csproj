@@ -33,7 +33,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>BfToIr.Program</StartupObject>
+    <StartupObject>BrainfCompiler.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -48,6 +48,7 @@
     <Compile Include="ASTNode.cs" />
     <Compile Include="Generator.cs" />
     <Compile Include="Lexer.cs" />
+    <Compile Include="Optimizer.cs" />
     <Compile Include="Parser.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
