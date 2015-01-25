@@ -12,7 +12,7 @@ namespace BrainfCompiler
         private TypeBuilder main_class;
         private MethodBuilder main_function;
         private ILGenerator ilg;
-        private FieldBuilder ptr, mem;
+        private LocalBuilder ptr, mem;
 
         private Generator(string destination)
         {
@@ -40,9 +40,6 @@ namespace BrainfCompiler
 
             this.main_class = module_builder.DefineType("Brainfuck.Code", TypeAttributes.Public | TypeAttributes.Class);
 
-            this.mem = main_class.DefineField("mem", typeof(Array), FieldAttributes.Private | FieldAttributes.Static);
-            this.ptr = main_class.DefineField("ptr", typeof(int), FieldAttributes.Private | FieldAttributes.Static);
-
             this.main_function = main_class.DefineMethod("Main",
                 MethodAttributes.Public | MethodAttributes.Static,
                 typeof(int),
@@ -50,12 +47,15 @@ namespace BrainfCompiler
 
             this.ilg = main_function.GetILGenerator();
 
+            this.mem = ilg.DeclareLocal(typeof(Array));
+            this.ptr = ilg.DeclareLocal(typeof(int));
+
             ilg.Emit(OpCodes.Ldc_I4, 30000);
             ilg.Emit(OpCodes.Newarr, typeof(int));
-            ilg.Emit(OpCodes.Stsfld, mem);
+            ilg.Emit(OpCodes.Stloc, mem);
 
             ilg.Emit(OpCodes.Ldc_I4_0);
-            ilg.Emit(OpCodes.Stsfld, ptr);
+            ilg.Emit(OpCodes.Stloc, ptr);
         }
 
         private void genPost()
@@ -77,20 +77,20 @@ namespace BrainfCompiler
                 switch (node.nodeType)
                 {
                     case ASTNodeType.Right:
-                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldloc, ptr);
                         ilg.Emit(OpCodes.Ldc_I4, (int)node.amount);
                         ilg.Emit(OpCodes.Add);
-                        ilg.Emit(OpCodes.Stsfld, ptr);
+                        ilg.Emit(OpCodes.Stloc, ptr);
 
                         node = node.childLeft;
                         break;
                     case ASTNodeType.Plus:
-                        ilg.Emit(OpCodes.Ldsfld, mem);
-                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldloc, mem);
+                        ilg.Emit(OpCodes.Ldloc, ptr);
                         // stack: mem, ptr
 
-                        ilg.Emit(OpCodes.Ldsfld, mem);
-                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldloc, mem);
+                        ilg.Emit(OpCodes.Ldloc, ptr);
                         ilg.Emit(OpCodes.Ldelem_I4);
                         // stack: mem, ptr, mem[ptr]
 
@@ -105,8 +105,8 @@ namespace BrainfCompiler
                     case ASTNodeType.Read:
                         Label read_store = ilg.DefineLabel();
 
-                        ilg.Emit(OpCodes.Ldsfld, mem);
-                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldloc, mem);
+                        ilg.Emit(OpCodes.Ldloc, ptr);
 
                         ilg.Emit(OpCodes.Call, typeof(Console).GetMethod("Read"));
                         // stack: mem, ptr, val
@@ -129,13 +129,10 @@ namespace BrainfCompiler
                         node = node.childLeft;
                         break;
                     case ASTNodeType.Write:
-                        ilg.Emit(OpCodes.Ldsfld, mem);
-                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldloc, mem);
+                        ilg.Emit(OpCodes.Ldloc, ptr);
                         ilg.Emit(OpCodes.Ldelem_I4);
                         ilg.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", new Type[] { typeof(char) }));
-                        
-                        //ilg.Emit(OpCodes.Call, typeof(Console).GetMethod("get_Out"));
-                        //ilg.Emit(OpCodes.Call, typeof(TextWriter).GetMethod("Flush"));
 
                         node = node.childLeft;
                         break;
@@ -149,8 +146,8 @@ namespace BrainfCompiler
                         this.go(node.childLeft);
                         ilg.MarkLabel(loopend);
 
-                        ilg.Emit(OpCodes.Ldsfld, mem);
-                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldloc, mem);
+                        ilg.Emit(OpCodes.Ldloc, ptr);
                         ilg.Emit(OpCodes.Ldelem_I4);
                         ilg.Emit(OpCodes.Ldc_I4_0);
                         ilg.Emit(OpCodes.Bne_Un, loopstart);
@@ -159,8 +156,8 @@ namespace BrainfCompiler
                         break;
 
                     case ASTNodeType.SetZero:
-                        ilg.Emit(OpCodes.Ldsfld, mem);
-                        ilg.Emit(OpCodes.Ldsfld, ptr);
+                        ilg.Emit(OpCodes.Ldloc, mem);
+                        ilg.Emit(OpCodes.Ldloc, ptr);
                         ilg.Emit(OpCodes.Ldc_I4_0);
                         ilg.Emit(OpCodes.Stelem_I4);
 
