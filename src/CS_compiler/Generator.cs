@@ -118,9 +118,9 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Bne_Un, read_store);
                         // stack: mem, ptr, val
 
-                        ilg.Emit(OpCodes.Ldc_I4_1);
-                        ilg.Emit(OpCodes.Add);
-                        // stack: mem, ptr, val+1
+                        ilg.Emit(OpCodes.Pop);
+                        ilg.Emit(OpCodes.Ldc_I4_0);
+                        // stack: mem, ptr, 0
 
                         ilg.MarkLabel(read_store);
 
