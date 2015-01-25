@@ -103,10 +103,27 @@ namespace BrainfCompiler
                         node = node.childLeft;
                         break;
                     case ASTNodeType.Read:
+                        Label read_store = ilg.DefineLabel();
+
                         ilg.Emit(OpCodes.Ldsfld, mem);
                         ilg.Emit(OpCodes.Ldsfld, ptr);
-                        
+
                         ilg.Emit(OpCodes.Call, typeof(Console).GetMethod("Read"));
+                        // stack: mem, ptr, val
+
+                        ilg.Emit(OpCodes.Dup);
+                        ilg.Emit(OpCodes.Ldc_I4_M1);
+                        // stack: mem, ptr, val, val, -1
+
+                        ilg.Emit(OpCodes.Bne_Un, read_store);
+                        // stack: mem, ptr, val
+
+                        ilg.Emit(OpCodes.Ldc_I4_1);
+                        ilg.Emit(OpCodes.Add);
+                        // stack: mem, ptr, val+1
+
+                        ilg.MarkLabel(read_store);
+
                         ilg.Emit(OpCodes.Stelem_I4);
 
                         node = node.childLeft;
