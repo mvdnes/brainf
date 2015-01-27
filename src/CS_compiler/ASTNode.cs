@@ -13,68 +13,133 @@ namespace BrainfCompiler
         SetZero,
     };
 
-    class ASTNode
+    abstract class ASTNode
     {
-        public ASTNodeType nodeType { get; private set; }
-        public ASTNode childLeft { get; set; }
-        public ASTNode childRight { get; set; }
-        public int amount { get; private set; }
+        public ASTNodeType nodeType { get; protected set; }
 
-        public static ASTNode getLeaf()
+        public abstract ASTNode nextChild();
+        public abstract void setNext(ASTNode child);
+    }
+
+    class ASTNodeLeaf : ASTNode
+    {
+        public ASTNodeLeaf()
         {
-            return new ASTNode(ASTNodeType.Leaf, null, null, 1);
+            this.nodeType = ASTNodeType.Leaf;
         }
 
-        public static ASTNode getLoop(ASTNode left, ASTNode right)
+        public override ASTNode nextChild()
         {
-            return new ASTNode(ASTNodeType.Loop, left, right, 1);
+            return null;
         }
 
-        public static ASTNode getUnary(ASTNodeType type, ASTNode child, int amount)
+        public override void setNext(ASTNode child)
         {
+            throw new NotImplementedException();
+        }
+    }
+
+    class ASTNodeUnary : ASTNode
+    {
+        protected ASTNode child;
+
+        public ASTNodeUnary(ASTNodeType type, ASTNode child)
+            : base()
+        {
+            if (child == null) throw new ArgumentNullException();
             switch (type)
             {
-                case ASTNodeType.Plus:
                 case ASTNodeType.Read:
-                case ASTNodeType.Right:
                 case ASTNodeType.SetZero:
                 case ASTNodeType.Write:
                     break;
                 default:
-                    throw new ArgumentException("Invalid node type");
+                    throw new ArgumentException("Invalid unary node type");
             }
 
-            return new ASTNode(type, child, null, amount);
-        }
-
-        private ASTNode(ASTNodeType type, ASTNode childLeft, ASTNode childRight, int amount)
-        {
+            this.child = child;
             this.nodeType = type;
-            this.childLeft = childLeft;
-            this.childRight = childRight;
+        }
+
+        protected ASTNodeUnary(ASTNode child)
+            : base()
+        {
+            if (child == null) throw new ArgumentNullException();
+            this.child = child;
+        }
+
+        public override ASTNode nextChild()
+        {
+            return this.child;
+        }
+
+        public override void setNext(ASTNode child)
+        {
+            if (child == null) throw new ArgumentNullException();
+            this.child = child;
+        }
+    }
+
+    class ASTNodePlus : ASTNodeUnary
+    {
+        public int amount;
+        public int offset;
+
+        public ASTNodePlus(ASTNode child, int amount, int offset)
+            : base(child)
+        {
             this.amount = amount;
+            this.offset = offset;
+            this.nodeType = ASTNodeType.Plus;
+        }
+    }
+
+    class ASTNodeRight : ASTNodeUnary
+    {
+        public int amount;
+
+        public ASTNodeRight(ASTNode child, int amount)
+            : base(child)
+        {
+            this.amount = amount;
+            this.nodeType = ASTNodeType.Right;
+        }
+    }
+
+    class ASTNodeLoop : ASTNode
+    {
+        protected ASTNode loop_node, next_node;
+
+        public ASTNodeLoop(ASTNode loop, ASTNode next)
+        {
+            if (loop == null) throw new ArgumentNullException();
+            if (next == null) throw new ArgumentNullException();
+
+            this.loop_node = loop;
+            this.next_node = next;
+            this.nodeType = ASTNodeType.Loop;
         }
 
-        public String asString()
+        public override ASTNode nextChild()
         {
-            return getRepresentation(0);
+            return this.next_node;
         }
 
-        private String getRepresentation(int indentation)
+        public override void setNext(ASTNode child)
         {
-            String result = "";
-            for (int i = 0; i < indentation; ++i) result += " ";
-            
-            result += String.Format("Node {0}: ({1})\n", this.nodeType, this.amount);
-            if (this.childLeft != null)
-            {
-                result += this.childLeft.getRepresentation(indentation + 1);
-            }
-            if (this.childRight != null)
-            {
-                result += this.childRight.getRepresentation(indentation + 1);
-            }
-            return result;
+            if (child == null) throw new ArgumentNullException();
+            this.next_node = child;
+        }
+
+        public ASTNode innerChild()
+        {
+            return this.loop_node;
+        }
+
+        public void setInner(ASTNode child)
+        {
+            if (child == null) throw new ArgumentNullException();
+            this.loop_node = child;
         }
     }
 }

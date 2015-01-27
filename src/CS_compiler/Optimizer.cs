@@ -18,32 +18,36 @@ namespace BrainfCompiler
         public static ASTNode run(ASTNode tree)
         {
             Optimizer optimizer = new Optimizer(tree);
-            optimizer.go(ref tree);
-            return tree;
+            var optimized_tree = optimizer.go(tree);
+            return optimized_tree;
         }
 
-        public void go(ref ASTNode node)
+        public ASTNode go(ASTNode node)
         {
             if (node == null) {
                 throw new ArgumentNullException("null's cannot be optimized");
             }
-            ASTNode left = node.childLeft;
-            ASTNode right = node.childRight;
+
+            ASTNode next = null;
 
             switch (node.nodeType)
             {
                 case ASTNodeType.Leaf:
                     break;
                 case ASTNodeType.Loop:
-                    this.go(ref left);
-                    this.go(ref right);
+                    var loop_node = node as ASTNodeLoop;
+                    if (loop_node == null) throw new InvalidCastException("Node had nodeType loop but was another type.");
+                    
+                    var inner = this.go(loop_node.innerChild());
+                    next = this.go(loop_node.nextChild());
 
-                    if (left.nodeType == ASTNodeType.Plus && left.childLeft.nodeType == ASTNodeType.Leaf) {
-                        node = ASTNode.getUnary(ASTNodeType.SetZero, right, 1);
+                    if (inner.nodeType == ASTNodeType.Plus && inner.nextChild().nodeType == ASTNodeType.Leaf) {
+                        node = new ASTNodeUnary(ASTNodeType.SetZero, next);
                     }
                     else {
-                        node.childLeft = left;
-                        node.childRight = right;
+                        loop_node.setInner(inner);
+                        loop_node.setNext(next);
+                        node = loop_node;
                     }
 
                     break;
@@ -52,12 +56,14 @@ namespace BrainfCompiler
                 case ASTNodeType.Right:
                 case ASTNodeType.SetZero:
                 case ASTNodeType.Write:
-                    this.go(ref left);
-                    node.childLeft = left;
+                    next = this.go(node.nextChild());
+                    node.setNext(next);
                     break;
                 default:
                     throw new NotImplementedException("Optimizer.go has a non exhaustive switch");
             }
+
+            return node;
         }
     }
 }

@@ -77,14 +77,18 @@ namespace BrainfCompiler
                 switch (node.nodeType)
                 {
                     case ASTNodeType.Right:
+                        var right_node = node as ASTNodeRight;
+                        if (right_node == null) throw new InvalidCastException("Node had nodeType right but was another type.");
+
                         ilg.Emit(OpCodes.Ldloc, ptr);
-                        ilg.Emit(OpCodes.Ldc_I4, (int)node.amount);
+                        ilg.Emit(OpCodes.Ldc_I4, (int)right_node.amount);
                         ilg.Emit(OpCodes.Add);
                         ilg.Emit(OpCodes.Stloc, ptr);
-
-                        node = node.childLeft;
                         break;
                     case ASTNodeType.Plus:
+                        var plus_node = node as ASTNodePlus;
+                        if (plus_node == null) throw new InvalidCastException("Node had nodeType plus but was another type.");
+
                         ilg.Emit(OpCodes.Ldloc, mem);
                         ilg.Emit(OpCodes.Ldloc, ptr);
                         // stack: mem, ptr
@@ -94,13 +98,11 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Ldelem_I4);
                         // stack: mem, ptr, mem[ptr]
 
-                        ilg.Emit(OpCodes.Ldc_I4, (int)node.amount);
+                        ilg.Emit(OpCodes.Ldc_I4, (int)plus_node.amount);
                         ilg.Emit(OpCodes.Add);
                         // stack: mem, ptr, mem[ptr]+val
 
                         ilg.Emit(OpCodes.Stelem_I4);
-
-                        node = node.childLeft;
                         break;
                     case ASTNodeType.Read:
                         Label read_store = ilg.DefineLabel();
@@ -125,25 +127,24 @@ namespace BrainfCompiler
                         ilg.MarkLabel(read_store);
 
                         ilg.Emit(OpCodes.Stelem_I4);
-
-                        node = node.childLeft;
                         break;
                     case ASTNodeType.Write:
                         ilg.Emit(OpCodes.Ldloc, mem);
                         ilg.Emit(OpCodes.Ldloc, ptr);
                         ilg.Emit(OpCodes.Ldelem_I4);
                         ilg.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", new Type[] { typeof(char) }));
-
-                        node = node.childLeft;
                         break;
                     case ASTNodeType.Loop:
+                        var loop_node = node as ASTNodeLoop;
+                        if (loop_node == null) throw new InvalidCastException("Node had nodeType loop but was another type.");
+
                         Label loopstart = ilg.DefineLabel();
                         Label loopend = ilg.DefineLabel();
 
                         ilg.Emit(OpCodes.Br, loopend);
 
                         ilg.MarkLabel(loopstart);
-                        this.go(node.childLeft);
+                        this.go(loop_node.innerChild());
                         ilg.MarkLabel(loopend);
 
                         ilg.Emit(OpCodes.Ldloc, mem);
@@ -151,8 +152,6 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Ldelem_I4);
                         ilg.Emit(OpCodes.Ldc_I4_0);
                         ilg.Emit(OpCodes.Bne_Un, loopstart);
-
-                        node = node.childRight;
                         break;
 
                     case ASTNodeType.SetZero:
@@ -160,10 +159,9 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Ldloc, ptr);
                         ilg.Emit(OpCodes.Ldc_I4_0);
                         ilg.Emit(OpCodes.Stelem_I4);
-
-                        node = node.childLeft;
                         break;
                 }
+                node = node.nextChild();
             }
         }
     }
