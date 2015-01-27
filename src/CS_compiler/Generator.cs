@@ -12,7 +12,7 @@ namespace BrainfCompiler
         private TypeBuilder main_class;
         private MethodBuilder main_function;
         private ILGenerator ilg;
-        private LocalBuilder ptr, mem;
+        private LocalBuilder ptr, mem, tmp;
 
         private Generator(string destination)
         {
@@ -49,6 +49,7 @@ namespace BrainfCompiler
 
             this.mem = ilg.DeclareLocal(typeof(Array));
             this.ptr = ilg.DeclareLocal(typeof(int));
+            this.tmp = ilg.DeclareLocal(typeof(int));
 
             ilg.Emit(OpCodes.Ldc_I4, 30000);
             ilg.Emit(OpCodes.Newarr, typeof(int));
@@ -162,11 +163,61 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Bne_Un, loopstart);
                         break;
 
-                    case ASTNodeType.SetZero:
-                        ilg.Emit(OpCodes.Ldloc, mem);
-                        ilg.Emit(OpCodes.Ldloc, ptr);
-                        ilg.Emit(OpCodes.Ldc_I4_0);
-                        ilg.Emit(OpCodes.Stelem_I4);
+                    case ASTNodeType.CopyLoop:
+                        var node_copyloop = (ASTNodeCopyLoop)node;
+
+                        if (node_copyloop.isEmpty()) {
+                            ilg.Emit(OpCodes.Ldloc, mem);
+                            ilg.Emit(OpCodes.Ldloc, ptr);
+                            ilg.Emit(OpCodes.Ldc_I4_0);
+                            ilg.Emit(OpCodes.Stelem_I4);
+                        }
+                        else {
+                            Label end_of_copy_loop = ilg.DefineLabel();
+
+                            ilg.Emit(OpCodes.Ldloc, mem);
+                            ilg.Emit(OpCodes.Ldloc, ptr);
+                            ilg.Emit(OpCodes.Ldelem_I4);
+
+                            ilg.Emit(OpCodes.Dup); // save one for the Beq
+                            ilg.Emit(OpCodes.Stloc, tmp);
+
+                            ilg.Emit(OpCodes.Ldloc, mem);
+                            ilg.Emit(OpCodes.Ldloc, ptr);
+                            ilg.Emit(OpCodes.Ldc_I4_0);
+                            ilg.Emit(OpCodes.Stelem_I4);
+
+                            ilg.Emit(OpCodes.Ldc_I4_0);
+                            ilg.Emit(OpCodes.Beq, end_of_copy_loop);
+
+                            foreach (var entry in node_copyloop)
+                            {
+                                ilg.Emit(OpCodes.Ldloc, mem);
+                                ilg.Emit(OpCodes.Ldloc, ptr);
+                                ilg.Emit(OpCodes.Ldc_I4, entry.offset);
+                                ilg.Emit(OpCodes.Add);
+                                // mem, ptr+o
+                            
+                                ilg.Emit(OpCodes.Ldloc, tmp);
+                                ilg.Emit(OpCodes.Ldc_I4, entry.factor);
+                                ilg.Emit(OpCodes.Mul);
+                                // mem, ptr+o, mem[ptr]*f
+
+                                ilg.Emit(OpCodes.Ldloc, mem);
+                                ilg.Emit(OpCodes.Ldloc, ptr);
+                                ilg.Emit(OpCodes.Ldc_I4, entry.offset);
+                                ilg.Emit(OpCodes.Add);
+                                // mem, ptr+o, mem[ptr]*f, mem, ptr+o
+
+                                ilg.Emit(OpCodes.Ldelem_I4);
+                                // mem, ptr+o, mem[ptr]*f, mem[ptr+o]
+
+                                ilg.Emit(OpCodes.Add);
+                                ilg.Emit(OpCodes.Stelem_I4);
+                            }
+
+                            ilg.MarkLabel(end_of_copy_loop);
+                        }
                         break;
                 }
                 node = node.nextChild();

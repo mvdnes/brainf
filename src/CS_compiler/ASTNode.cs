@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 
 namespace BrainfCompiler
 {
@@ -10,7 +12,7 @@ namespace BrainfCompiler
         Read,
         Write,
         Leaf,
-        SetZero,
+        CopyLoop,
     };
 
     abstract class ASTNode
@@ -50,7 +52,6 @@ namespace BrainfCompiler
             switch (type)
             {
                 case ASTNodeType.Read:
-                case ASTNodeType.SetZero:
                 case ASTNodeType.Write:
                     break;
                 default:
@@ -140,6 +141,48 @@ namespace BrainfCompiler
         {
             if (child == null) throw new ArgumentNullException();
             this.loop_node = child;
+        }
+    }
+
+    class ASTNodeCopyLoop : ASTNodeUnary, IEnumerable<CopyLoopData>
+    {
+        protected Dictionary<int, int> copy_values;
+        
+        public ASTNodeCopyLoop(ASTNode next, Dictionary<int, int> values)
+            : base(next)
+        {
+            this.copy_values = values;
+            this.nodeType = ASTNodeType.CopyLoop;
+        }
+
+        public bool isEmpty()
+        {
+            return copy_values.Count == 0;
+        }
+
+        public IEnumerator<CopyLoopData> GetEnumerator()
+        {
+            foreach (var entry in this.copy_values)
+            {
+                yield return new CopyLoopData(entry.Key, entry.Value);
+            }
+            yield break;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    class CopyLoopData
+    {
+        public int offset, factor;
+
+        public CopyLoopData(int offset, int factor)
+        {
+            this.offset = offset;
+            this.factor = factor;
         }
     }
 }

@@ -8,22 +8,14 @@ namespace BrainfCompiler
 {
     class Optimizer
     {
-        private ASTNode root;
-
-        private Optimizer(ASTNode tree)
+        public static ASTNode full(ASTNode tree)
         {
-            this.root = tree;
+            tree = optimize_loops(tree);
+            tree = optimize_offsets(tree, 0);
+            return tree;
         }
 
-        public static ASTNode run(ASTNode tree)
-        {
-            Optimizer optimizer = new Optimizer(tree);
-            var optimized_tree = optimizer.optimize_loop(tree);
-            optimized_tree = optimizer.optimize_offset(tree, 0);
-            return optimized_tree;
-        }
-
-        public ASTNode optimize_loop(ASTNode node)
+        public static ASTNode optimize_loops(ASTNode node)
         {
             if (node == null) {
                 throw new ArgumentNullException("null's cannot be optimized");
@@ -39,11 +31,13 @@ namespace BrainfCompiler
                     var loop_node = node as ASTNodeLoop;
                     if (loop_node == null) throw new InvalidCastException("Node had nodeType loop but was another type.");
 
-                    var inner = this.optimize_loop(loop_node.innerChild());
-                    next = this.optimize_loop(loop_node.nextChild());
+                    var inner = optimize_loops(loop_node.innerChild());
+                    next = optimize_loops(loop_node.nextChild());
 
-                    if (inner.nodeType == ASTNodeType.Plus && inner.nextChild().nodeType == ASTNodeType.Leaf) {
-                        node = new ASTNodeUnary(ASTNodeType.SetZero, next);
+                    var copy_loop_data = analyseLoopInner(inner);
+                    if (copy_loop_data != null)
+                    {
+                        node = new ASTNodeCopyLoop(next, copy_loop_data);
                     }
                     else {
                         loop_node.setInner(inner);
@@ -55,9 +49,9 @@ namespace BrainfCompiler
                 case ASTNodeType.Plus:
                 case ASTNodeType.Read:
                 case ASTNodeType.Right:
-                case ASTNodeType.SetZero:
+                case ASTNodeType.CopyLoop:
                 case ASTNodeType.Write:
-                    next = this.optimize_loop(node.nextChild());
+                    next = optimize_loops(node.nextChild());
                     node.setNext(next);
                     break;
                 default:
@@ -67,7 +61,44 @@ namespace BrainfCompiler
             return node;
         }
 
-        public ASTNode optimize_offset(ASTNode node, int offset)
+        private static Dictionary<int, int> analyseLoopInner(ASTNode node) {
+            Dictionary<int, int> result = new Dictionary<int,int>();
+            int offset = 0;
+
+            while (node.nodeType != ASTNodeType.Leaf)
+            {
+                switch (node.nodeType)
+                {
+                    case ASTNodeType.Plus:
+                        var node_plus = (ASTNodePlus)node;
+                        var my_offset = offset + node_plus.offset;
+                        if (result.ContainsKey(my_offset)) result[my_offset] += node_plus.amount;
+                        else result.Add(my_offset, node_plus.amount);
+                        break;
+                    case ASTNodeType.Right:
+                        var node_right = (ASTNodeRight)node;
+                        offset += node_right.amount;
+                        break;
+                    default:
+                        return null;
+                }
+                node = node.nextChild();
+            }
+
+            if (offset == 0 && result.ContainsKey(0) && result[0] == -1)
+            {
+                result.Remove(0);
+                return result;
+            }
+            return null;
+        }
+
+        public static ASTNode optimize_offsets(ASTNode node)
+        {
+            return optimize_offsets(node, 0);
+        }
+
+        private static ASTNode optimize_offsets(ASTNode node, int offset)
         {
             if (node == null)
             {
@@ -80,28 +111,28 @@ namespace BrainfCompiler
             {
                 case ASTNodeType.Plus:
                     var node_plus = (ASTNodePlus)node;
-                    next = this.optimize_offset(node.nextChild(), offset);
+                    next = optimize_offsets(node.nextChild(), offset);
                     node_plus.setNext(next);
                     node_plus.offset = offset;
                     break;
                 case ASTNodeType.Right:
                     var node_right = (ASTNodeRight)node;
-                    node = this.optimize_offset(node_right.nextChild(), offset + node_right.amount);
+                    node = optimize_offsets(node_right.nextChild(), offset + node_right.amount);
                     break;
                 case ASTNodeType.Loop:
                     var node_loop = (ASTNodeLoop)node;
-                    next = this.optimize_offset(node_loop.nextChild(), 0);
-                    var inner = this.optimize_offset(node_loop.innerChild(), 0);
+                    next = optimize_offsets(node_loop.nextChild(), 0);
+                    var inner = optimize_offsets(node_loop.innerChild(), 0);
 
                     node_loop.setInner(inner);
                     node_loop.setNext(next);
                     node = node_loop;
                     node = reset_offset(node, offset);
                     break;
+                case ASTNodeType.CopyLoop:
                 case ASTNodeType.Read:
-                case ASTNodeType.SetZero:
                 case ASTNodeType.Write:
-                    next = this.optimize_offset(node.nextChild(), 0);
+                    next = optimize_offsets(node.nextChild(), 0);
                     node.setNext(next);
                     node = reset_offset(node, offset);
                     break;
@@ -115,7 +146,7 @@ namespace BrainfCompiler
             return node;
         }
 
-        private ASTNode reset_offset(ASTNode node, int offset)
+        private static ASTNode reset_offset(ASTNode node, int offset)
         {
             if (offset != 0)
             {
