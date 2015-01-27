@@ -91,10 +91,18 @@ namespace BrainfCompiler
 
                         ilg.Emit(OpCodes.Ldloc, mem);
                         ilg.Emit(OpCodes.Ldloc, ptr);
+                        if (plus_node.offset != 0) {
+                            ilg.Emit(OpCodes.Ldc_I4, (int)plus_node.offset);
+                            ilg.Emit(OpCodes.Add);
+                        }
                         // stack: mem, ptr
 
                         ilg.Emit(OpCodes.Ldloc, mem);
                         ilg.Emit(OpCodes.Ldloc, ptr);
+                        if (plus_node.offset != 0) {
+                            ilg.Emit(OpCodes.Ldc_I4, (int)plus_node.offset);
+                            ilg.Emit(OpCodes.Add);
+                        }
                         ilg.Emit(OpCodes.Ldelem_I4);
                         // stack: mem, ptr, mem[ptr]
 
