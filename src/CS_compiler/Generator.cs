@@ -82,7 +82,7 @@ namespace BrainfCompiler
                         if (right_node == null) throw new InvalidCastException("Node had nodeType right but was another type.");
 
                         ilg.Emit(OpCodes.Ldloc, ptr);
-                        ilg.Emit(OpCodes.Ldc_I4, (int)right_node.amount);
+                        emitLoadConstant(right_node.amount);
                         ilg.Emit(OpCodes.Add);
                         ilg.Emit(OpCodes.Stloc, ptr);
                         break;
@@ -93,7 +93,7 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Ldloc, mem);
                         ilg.Emit(OpCodes.Ldloc, ptr);
                         if (plus_node.offset != 0) {
-                            ilg.Emit(OpCodes.Ldc_I4, (int)plus_node.offset);
+                            emitLoadConstant(plus_node.offset);
                             ilg.Emit(OpCodes.Add);
                         }
                         // stack: mem, ptr
@@ -101,13 +101,13 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Ldloc, mem);
                         ilg.Emit(OpCodes.Ldloc, ptr);
                         if (plus_node.offset != 0) {
-                            ilg.Emit(OpCodes.Ldc_I4, (int)plus_node.offset);
+                            emitLoadConstant(plus_node.offset);
                             ilg.Emit(OpCodes.Add);
                         }
                         ilg.Emit(OpCodes.Ldelem_I4);
                         // stack: mem, ptr, mem[ptr]
 
-                        ilg.Emit(OpCodes.Ldc_I4, (int)plus_node.amount);
+                        emitLoadConstant(plus_node.amount);
                         ilg.Emit(OpCodes.Add);
                         // stack: mem, ptr, mem[ptr]+val
 
@@ -194,18 +194,18 @@ namespace BrainfCompiler
                             {
                                 ilg.Emit(OpCodes.Ldloc, mem);
                                 ilg.Emit(OpCodes.Ldloc, ptr);
-                                ilg.Emit(OpCodes.Ldc_I4, entry.offset);
+                                emitLoadConstant(entry.offset);
                                 ilg.Emit(OpCodes.Add);
                                 // mem, ptr+o
                             
                                 ilg.Emit(OpCodes.Ldloc, tmp);
-                                ilg.Emit(OpCodes.Ldc_I4, entry.factor);
+                                emitLoadConstant(entry.factor);
                                 ilg.Emit(OpCodes.Mul);
                                 // mem, ptr+o, mem[ptr]*f
 
                                 ilg.Emit(OpCodes.Ldloc, mem);
                                 ilg.Emit(OpCodes.Ldloc, ptr);
-                                ilg.Emit(OpCodes.Ldc_I4, entry.offset);
+                                emitLoadConstant(entry.offset);
                                 ilg.Emit(OpCodes.Add);
                                 // mem, ptr+o, mem[ptr]*f, mem, ptr+o
 
@@ -221,6 +221,18 @@ namespace BrainfCompiler
                         break;
                 }
                 node = node.nextChild();
+            }
+        }
+
+        private void emitLoadConstant(int value)
+        {
+            if (value >= -128 && value <= 127)
+            {
+                ilg.Emit(OpCodes.Ldc_I4_S, (sbyte)value);
+            }
+            else
+            {
+                ilg.Emit(OpCodes.Ldc_I4, (int)value);
             }
         }
     }
