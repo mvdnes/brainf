@@ -78,8 +78,7 @@ namespace BrainfCompiler
                 switch (node.nodeType)
                 {
                     case ASTNodeType.Right:
-                        var right_node = node as ASTNodeRight;
-                        if (right_node == null) throw new InvalidCastException("Node had nodeType right but was another type.");
+                        var right_node = (ASTNodeRight)node;
 
                         ilg.Emit(OpCodes.Ldloc, ptr);
                         emitLoadConstant(right_node.amount);
@@ -87,8 +86,7 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Stloc, ptr);
                         break;
                     case ASTNodeType.Plus:
-                        var plus_node = node as ASTNodePlus;
-                        if (plus_node == null) throw new InvalidCastException("Node had nodeType plus but was another type.");
+                        var plus_node = (ASTNodePlus)node;
 
                         ilg.Emit(OpCodes.Ldloc, mem);
                         ilg.Emit(OpCodes.Ldloc, ptr);
@@ -144,8 +142,7 @@ namespace BrainfCompiler
                         ilg.Emit(OpCodes.Call, typeof(Console).GetMethod("Write", new Type[] { typeof(char) }));
                         break;
                     case ASTNodeType.Loop:
-                        var loop_node = node as ASTNodeLoop;
-                        if (loop_node == null) throw new InvalidCastException("Node had nodeType loop but was another type.");
+                        var loop_node = (ASTNodeLoop)node;
 
                         Label loopstart = ilg.DefineLabel();
                         Label loopend = ilg.DefineLabel();
